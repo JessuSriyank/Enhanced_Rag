@@ -99,6 +99,7 @@ if uploaded_files:
         embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
         all_documents = []
 
+        # Create a map of document chunks to their respective PDF filenames
         for uploaded_file in uploaded_files:
             file_path = os.path.join("temp", uploaded_file.name)
             with open(file_path, "wb") as f:
@@ -109,6 +110,11 @@ if uploaded_files:
 
             text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
             split_documents = text_splitter.split_documents(docs[:20])
+
+            # Add metadata to the chunks to track their source (filename)
+            for doc in split_documents:
+                doc.metadata['source'] = uploaded_file.name
+
             all_documents.extend(split_documents)
 
         vectors = FAISS.from_documents(all_documents, embeddings)
@@ -143,19 +149,37 @@ if uploaded_files:
         # User input field with auto-clear after submission
         with st.form("query_form", clear_on_submit=True):
             user_query = st.text_input("Ask a question:")
+            
+            # Allow the user to select documents to ask questions about
+            selected_docs = st.multiselect("Select documents", [file.name for file in uploaded_files])
+            
             submitted = st.form_submit_button("Submit")
 
             if submitted and user_query.strip():
                 try:
+                    # Filter documents based on user selection
+                    if selected_docs:
+                        filtered_documents = [doc for doc in all_documents if doc.metadata['source'] in selected_docs]
+                        vectors = FAISS.from_documents(filtered_documents, embeddings)
+                        retriever = vectors.as_retriever()
+                        retrieval_chain = create_retrieval_chain(retriever, document_chain)
+
                     start = time.process_time()
                     response = retrieval_chain.invoke({"input": user_query})
                     end_time = time.process_time() - start
 
                     st.session_state.question_history.append((user_query, response.get('answer', "No response generated.")))
 
+                    # Display the response
                     st.markdown('<div class="response-box">', unsafe_allow_html=True)
                     st.markdown("### AI Response")
                     st.write(response.get('answer', "No response generated."))
+
+                    # Display the source PDF(s)
+                    sources = [doc.metadata['source'] for doc in response.get('docs', [])]
+                    if sources:
+                        st.markdown(f"#### Source PDFs: {', '.join(sources)}")
+
                     st.markdown('</div>', unsafe_allow_html=True)
 
                     with query_col2:
