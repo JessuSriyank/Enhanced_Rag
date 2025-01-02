@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Enhanced RAG Application</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        {% if logged_in %}
+            <h1>Welcome to the Enhanced RAG Application</h1>
+            <p>{{ message }}</p>
+            <form action="/upload" method="post" enctype="multipart/form-data">
+                <input type="file" name="files" accept="application/pdf" multiple>
+                <button type="submit">Upload Files</button>
+            </form>
+            <hr>
+            <form action="/query" method="post">
+                <label for="question">Ask a question:</label>
+                <input type="text" id="question" name="question">
+                <button type="submit">Submit</button>
+            </form>
+            {% if answer %}
+                <div>
+                    <h2>AI Response</h2>
+                    <p>{{ answer }}</p>
+                    <p>Response Time: {{ response_time }} seconds</p>
+                </div>
+            {% endif %}
+        {% else %}
+            <h1>Please Log In</h1>
+            <a href="/login">Log In with Google</a>
+        {% endif %}
+    </div>
+</body>
+</html>

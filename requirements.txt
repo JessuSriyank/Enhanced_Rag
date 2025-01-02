@@ -1,0 +1,8 @@
+langchain
+langchain-community
+langchain_groq
+streamlit
+langchain_core
+langchain_google_genai
+pypdf
+faiss-cpu
